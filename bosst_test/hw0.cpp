@@ -5,6 +5,7 @@
 #include<climits>
 #include<boost/asio.hpp>
 #include<boost/bind.hpp>
+#include<boost/lexical_cast.hpp>
 #include<boost/algorithm/string/case_conv.hpp>
 
 std::vector<long> fibs(3, 1);
@@ -44,7 +45,7 @@ void run() {
 }
 int main() {
 
-	boost::asio::io_service::work work(io_service);
+	std::unique_ptr<boost::asio::io_service::work> work = std::make_unique<boost::asio::io_service::work>(io_service);
 	boost::asio::io_service::work work1(main_io_service);
 	std::thread thread1(run);
 	std::string input_str;
@@ -55,11 +56,24 @@ int main() {
 			print_records();
 			//fibs.clear();
 			//history_outputs.clear();
-			return 0;
+			break;
 		}
 		else {
-
 			try {
+				int input_num = boost::lexical_cast<int>(input_str);
+				if (input_num < 0)
+				{
+					std::cout << "illegal input" << std::endl;
+					continue;
+				}
+				io_service.post(boost::bind(print_fib, input_num));
+			}
+			catch (boost::bad_lexical_cast& e) {
+				std::cout << e.what() << std::endl;
+				continue;
+			}
+
+			/*try {
 				int input_num = std::stoi(input_str);
 				if (input_num < 0)
 				{
@@ -76,12 +90,14 @@ int main() {
 			catch (std::out_of_range& e){
 				std::cout << e.what() << std::endl;
 				continue;
-			}
+			}*/
 
 			main_io_service.run_one();
 
 		}
 
 	}
+	work.reset();
+	thread1.join();
 	return 0;
 }
